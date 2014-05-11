@@ -1,6 +1,7 @@
 package com.myernore.e68.hbasemessenger;
 
 import java.io.IOException;
+import java.util.Iterator;
 import java.util.List;
 
 import org.apache.hadoop.hbase.client.HTablePool;
@@ -30,25 +31,29 @@ public class LoadMessages {
 			System.out.println(usage);
 			System.exit(0);
 		}
-
-		HTablePool pool = new HTablePool();
-		UsersDAO usersConnection = new UsersDAO(pool);
-
 		String fromUser = args[0];
-		int numMessages = Integer.parseInt(args[1]);
+		int numMessages = 0;
+		try {
+			Integer.parseInt(args[1]);
+			generateMessagesFrom(fromUser,numMessages);
+		} catch ( NumberFormatException nfe ) {
+			System.out.println(args[1] + " is not a valid number of messages. Exiting.");
+		} 
+	}
 
+	private static void generateMessagesFrom(String fromUser, int numMessages) throws IOException {
+		HTablePool pool = new HTablePool();
+		UsersDAO usersDao = new UsersDAO(pool);
 		List<String> words = LoadUtils.readResource(LoadUtils.WORDS_PATH);
-		List<User> users = usersConnection.getUsers();
-
-		
-//		for (int i = 0; i < numMessages;) {
-//			for (User u : users) {
-//				usersConnection.addMessage(fromUser, u.name, words.toString());
-//			}
-//			usersConnection.addUser(fromUser, user.name);
-//		}
-
+		Iterator<User> users = usersDao.getUsers().iterator();
+		int numMessagesSent = 0;
+		while (numMessagesSent <  numMessages) {
+			if( ! users.hasNext() ) {
+				users = usersDao.getUsers().iterator();
+			}
+			User toUser= users.next();
+				usersDao.addMessage(fromUser, toUser.name, words.toString());
+		}
 		pool.closeTablePool(UsersDAO.TABLE_NAME);
-		throw new UnsupportedOperationException("Not Implemented for Load Messages yet");
 	}
 }

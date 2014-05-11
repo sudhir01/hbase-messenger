@@ -90,19 +90,15 @@ public class UsersDAO {
 		}
 
 		private UsersDAOUser(byte[] username) {
-			this(Bytes.toString(username));
+			super(Bytes.toString(username));
 		}
 		
-		private UsersDAOUser(String username) {
-			this.username = username;
-		}
-
 		private UsersDAOUser(byte[] user, byte[] name) {
 			this(Bytes.toString(user), Bytes.toString(name));
 		}
 
 		private UsersDAOUser(String username, String name) {
-			this.username = username;
+			super(username);
 			this.name = name;
 		}
 	}
@@ -124,7 +120,7 @@ public class UsersDAO {
 		s.addFamily(INFO_FAM);
 		return s;
 	}
-
+	
 	/**
 	 * Adds a message fromUsername to toUsername. Message is added to both
 	 * users.
@@ -133,13 +129,8 @@ public class UsersDAO {
 	 * @param toUsername
 	 * @param string
 	 */
-//	public void addMessage(String fromUsername, String toUsername, String string) {
-//		HTableInterface userTable = pool.getTable(TABLE_NAME);
-//
-//		Put p = mkPut(new UsersDAOUser(fromUsername, name));
-//		userTable.put(p);
-//
-//		userTable.close();
-//	}
+	public void addMessage(String fromUsername, String toUsername, String message) {
+		UsersDAOUser user1 = new UsersDAOUser(fromUsername)
+	}
 
 }
