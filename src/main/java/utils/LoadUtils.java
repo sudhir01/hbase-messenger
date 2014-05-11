@@ -7,7 +7,7 @@ import java.io.InputStreamReader;
 import java.util.ArrayList;
 import java.util.List;
 
-import com.myernore.e68.HbaseMessenger.LoadUsers;
+import com.myernore.e68.hbasemessenger.LoadUsers;
 
 
 public class LoadUtils {

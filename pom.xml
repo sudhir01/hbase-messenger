@@ -4,7 +4,7 @@
          xmlns="http://maven.apache.org/POM/4.0.0"
          xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance">
   <modelVersion>4.0.0</modelVersion>
-  <groupId>com.myernore.e63.hbase-messenger</groupId>
+  <groupId>com.myernore.e63.hbasemessenger</groupId>
   <artifactId>hbase-messenger</artifactId>
   <version>0.0.1</version>
   <name>HBase Messenger</name>
@@ -62,7 +62,7 @@
     <dependency>
       <groupId>org.apache.hbase</groupId>
       <artifactId>hbase</artifactId>
-      <version>0.92.1</version>
+      <version>0.94.6</version>
       <exclusions>
         <exclusion>
           <artifactId>maven-release-plugin</artifactId>
