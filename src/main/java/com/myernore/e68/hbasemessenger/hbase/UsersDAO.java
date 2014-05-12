@@ -3,6 +3,7 @@ package com.myernore.e68.hbasemessenger.hbase;
 import java.io.IOException;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.NavigableMap;
 
 import org.apache.hadoop.hbase.client.Get;
 import org.apache.hadoop.hbase.client.HTableInterface;
@@ -13,6 +14,7 @@ import org.apache.hadoop.hbase.client.ResultScanner;
 import org.apache.hadoop.hbase.client.Scan;
 import org.apache.hadoop.hbase.util.Bytes;
 import org.apache.log4j.Logger;
+import org.joda.time.DateTime;
 
 import utils.Md5Utils;
 
@@ -38,15 +40,17 @@ public class UsersDAO {
 	public static final byte[] TO_MSG_COL_SUFFIX = Bytes.toBytes("to");
 	public static final byte[] MSG_INFO_SEPARATOR = Bytes.toBytes("-");
 
-	/** 
-	 * This works fine, but it breaks Hue browser, so I decided to change to a string-based approach. 
+	/**
+	 * This works fine, but it breaks Hue browser, so I decided to change to a
+	 * string-based approach.
+	 * 
 	 * @param msg
 	 * @param isFrom
 	 * @return
 	 */
-	public static byte[] makeToMessageColumnNameBytes(UsersDAOUser.MessagesDAO msg,
-			boolean isFrom) {
-		
+	public static byte[] makeToMessageColumnNameBytes(
+			UsersDAOUser.MessagesDAO msg, boolean isFrom) {
+
 		// reverse timestamp-username-from
 		byte[] timestamp = Bytes.toBytes(-1 * msg.date.getMillis());
 		byte[] username = Bytes.toBytes(isFrom ? msg.fromUser.username
@@ -70,21 +74,24 @@ public class UsersDAO {
 		Bytes.putBytes(colKey, offset, suffix, 0, suffixLen);
 		return colKey;
 	}
-	
+
 	/**
 	 * This is slower, but more understandable from the hbase shell
+	 * 
 	 * @param msg
 	 * @param isForFromUser
 	 * @return
 	 */
-	public static byte[] makeToMessageColumnNameString(UsersDAOUser.MessagesDAO msg,
-			boolean isForFromUser) {
-		
-		// [reverse timestamp]-[username]-[fr]om or [reverse timestamp]-[username]-[to]
-		String ts = String.format("%0" + longLength + "d",-1 * msg.date.getMillis() );
+	public static byte[] makeToMessageColumnNameString(
+			UsersDAOUser.MessagesDAO msg, boolean isForFromUser) {
+
+		// [reverse timestamp]-[username]-[fr]om or [reverse
+		// timestamp]-[username]-[to]
+		String ts = String.format("%0" + longLength + "d",
+				-1 * msg.date.getMillis());
 		String un = isForFromUser ? msg.toUser.username : msg.fromUser.username;
 		String suffix = isForFromUser ? "to" : "fr";
-				
+
 		return Bytes.toBytes(ts + '-' + un + '-' + suffix);
 	}
 
@@ -136,18 +143,49 @@ public class UsersDAO {
 		log.debug(String.format("Creating Get for %s", user));
 		Get g = new Get(Bytes.toBytes(user));
 		g.addFamily(INFO_FAM);
+		g.addFamily(MSGS_FAM);
 		return g;
 	}
 
 	private static class UsersDAOUser extends User {
 
+		private Result r;
+
 		private UsersDAOUser(User u) {
 			super(u.username);
 			this.name = u.name == null ? "" : u.name;
 		}
-		
+
 		private UsersDAOUser(Result r) {
-			this(r.getValue(INFO_FAM, USER_COL), r.getValue(INFO_FAM, NAME_COL));
+			this(r.getValue(INFO_FAM, USER_COL));
+			this.r = r;
+			this.name = Bytes.toString(r.getValue(INFO_FAM, NAME_COL));
+			loadMessages(r);
+		}
+
+		private void loadMessages(Result r2) {
+			NavigableMap<byte[], byte[]> familyMap = r.getFamilyMap(MSGS_FAM);
+
+			for (byte[] column : familyMap.keySet()) {
+				String columnName = Bytes.toString(column);
+				String columnValue = Bytes.toString(r.getValue(MSGS_FAM, column));
+				loadMessage(columnName,columnValue);
+			}
+		}
+
+		private void loadMessage(String columnName, String columnValue) {
+			String[] parts = columnName.split("-");
+			long instant = Long.parseLong(parts[1]);
+			DateTime msgTime = new DateTime(instant);
+			String targetUser = parts[2];
+			String suffix = parts[3];
+			User user2 = new User(targetUser);
+			boolean isFrom = suffix.equals("fr");
+			User fromUser = isFrom ? user2 : (User) this;
+			User toUser = isFrom ? (User) this : user2;
+			String body = columnValue;
+			Message msg = new Message(fromUser, toUser, msgTime, body);
+			addMessage(msg);
 		}
 
 		private UsersDAOUser(byte[] username) {
@@ -202,8 +240,8 @@ public class UsersDAO {
 
 	/**
 	 * Adds a message fromUsername to toUsername. Message is added to both
-	 * users. Currently does not support error checking to see if users exist; 
-	 * that is, will try to message users that don't exist. 
+	 * users. Currently does not support error checking to see if users exist;
+	 * that is, will try to message users that don't exist.
 	 * 
 	 * @param fromUsername
 	 * @param toUsername
@@ -221,7 +259,8 @@ public class UsersDAO {
 			com.myernore.e68.hbasemessenger.hbase.UsersDAO.UsersDAOUser.MessagesDAO msg,
 			boolean isForFromUser) {
 
-		String username = isForFromUser ? msg.fromUser.username : msg.toUser.username;
+		String username = isForFromUser ? msg.fromUser.username
+				: msg.toUser.username;
 		log.debug(String
 				.format("Creating Put for new message between %s and %s, storing in user %s",
 						msg.fromUser.username, msg.toUser.username, username));
@@ -236,21 +275,24 @@ public class UsersDAO {
 		HTableInterface users = pool.getTable(TABLE_NAME);
 		Get get = mkGet(username);
 		Result result = users.get(get);
-	    if (result.isEmpty()) {
-	      log.info(String.format("user %s not found.", username));
-	      return null;
-	    }
+		if (result.isEmpty()) {
+			log.info(String.format("user %s not found.", username));
+			return null;
+		}
 
-	    User u = new UsersDAOUser(result);
-	    users.close();
-	    return u;
+		User u = new UsersDAOUser(result);
+		users.close();
+		return u;
 	}
 
-	public void addMessage(User fromUser, User toUser, String message) throws IOException {
-		addMessage(new UsersDAOUser( fromUser), new UsersDAOUser( toUser ), message);
+	public void addMessage(User fromUser, User toUser, String message)
+			throws IOException {
+		addMessage(new UsersDAOUser(fromUser), new UsersDAOUser(toUser),
+				message);
 	}
-	
-	private void addMessage(UsersDAOUser fromUser, UsersDAOUser toUser, String message) throws IOException {
+
+	private void addMessage(UsersDAOUser fromUser, UsersDAOUser toUser,
+			String message) throws IOException {
 		UsersDAOUser.MessagesDAO msg = fromUser.new MessagesDAO(fromUser,
 				toUser, message);
 		Put putIntoFromUser = mkPut(msg, true);
@@ -261,7 +303,5 @@ public class UsersDAO {
 		userTable.put(putIntoToUser);
 		userTable.close();
 	}
-
-	
 
 }
