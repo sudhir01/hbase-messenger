@@ -13,20 +13,20 @@ import com.myernore.e68.hbasemessenger.hbase.UsersDAO;
 import com.myernore.e68.hbasemessenger.model.User;
 import com.myernore.e68.hbasemessenger.model.User.Message;
 
-public class MessagesTool {
+public class MessagesAPI {
 
-	private static String USAGE = "Usage - MessagesTool\n"
-			+ "  MessagesTool help                                       :  print this help message\n"
-			+ "  MessagesTool list                                       :  list usernames to message\n"
-			+ "  MessagesTool check <username1>                          :  check messages for \n"
-			+ "  MessagesTool msg <username1> <username2> \"<message>\"  :  sends \"message\" from username1 to username2";
+	private static String USAGE = "Usage - MessagesAPI\n"
+			+ "  MessagesAPI help                                       :  print this help message\n"
+			+ "  MessagesAPI list                                       :  list usernames to message\n"
+			+ "  MessagesAPI check <username1>                          :  check messages for \n"
+			+ "  MessagesAPI msg <username1> <username2> \"<message>\"  :  sends \"message\" from username1 to username2";
 
 	public static void main(String[] args) throws IOException {
 		if (args.length < 1 || args[0].equals("help")) {
 			printUsage();
 		}
 		if (args[0].equals("list")) {
-			UsersTool.printUsers();
+			UsersAPI.printUsers();
 		} else if (args[0].equals("check") && args.length == 2) {
 			checkMessages(args[1]);
 		} else if (args[0].equals("msg") && args.length == 4) {
@@ -57,7 +57,7 @@ public class MessagesTool {
 	}
 
 	private static void printUsage() {
-		System.out.println("MessagesTool has required parameters.");
+		System.out.println("MessagesAPI has required parameters.");
 		System.out.println(USAGE);
 		System.exit(0);
 	}

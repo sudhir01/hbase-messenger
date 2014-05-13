@@ -9,11 +9,11 @@ import org.apache.hadoop.hbase.client.HTablePool;
 import com.myernore.e68.hbasemessenger.hbase.UsersDAO;
 import com.myernore.e68.hbasemessenger.model.User;
 
-public class UsersTool {
-	private static String USAGE = "Usage - UsersTool\n"
-			+ "  UsersTool help                                :  print this help message\n"
-			+ "  UsersTool list                                :  list users\n"
-			+ "  UsersTool add username1 \"User DisplayName\"  :  creates user with username1 and \"User DisplayName\"";
+public class UsersAPI {
+	private static String USAGE = "Usage - UsersAPI\n"
+			+ "  UsersAPI help                                :  print this help message\n"
+			+ "  UsersAPI list                                :  list users\n"
+			+ "  UsersAPI add username1 \"User DisplayName\"  :  creates user with username1 and \"User DisplayName\"";
 
 	public static void main(String[] args) throws IOException {
 		if ( args.length < 1 || args[0].equals("help")) {
@@ -43,7 +43,7 @@ public class UsersTool {
 	}
 	
 	private static void printUsage() {
-		System.out.println("UsersTool has required parameters.");
+		System.out.println("UsersAPI has required parameters.");
 		System.out.println(USAGE);
 		System.exit(0);
 	}

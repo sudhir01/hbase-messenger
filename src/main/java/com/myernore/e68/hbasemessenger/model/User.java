@@ -11,11 +11,9 @@ public class User {
 
 	private DateTimeFormatter dtf = DateTimeFormat.forPattern("MM/dd/yyyy HH:mm:ss a");
 	
-	/********* Column Family: info ********/
 	public String username;
 	public String name;
 
-	/********* Column Family: messages ********/
 	public List<User.Message> messages;
 
 	public User(String username) {
