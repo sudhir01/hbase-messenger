@@ -42,19 +42,13 @@ public class MessagesTool {
 		UsersDAO usersDao = new UsersDAO(pool);
 		User user1 = usersDao.getUser(username);
 		checkForNoUsername(username, user1);
-		DateTimeFormatter dtf = DateTimeFormat.forPattern("MM/dd/yyyy HH:mm:ss");
 		if (user1 == null) {
 			System.out.println("Exiting.");
 			System.exit(-1);
 		}
 		System.out.println("Checking messages for " + user1.name + ".");
 		for (Message m : user1.getMessages()) {
-			boolean isFrom = m.fromUser.username.equals(username);
-			String fromOrTo = isFrom ? "To " + m.toUser.username
-					: "From " +  m.fromUser.username;
-			System.out.println("-----------------------\n" + fromOrTo + ":");
-			System.out.println("(" + dtf.print(m.date) + ")");
-			System.out.println(m.body);
+			System.out.println(m);
 		}
 		pool.closeTablePool(UsersDAO.TABLE_NAME);
 		if( user1.getMessages().size() < 1 ) {

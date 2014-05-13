@@ -41,39 +41,39 @@ public class UsersDAO {
 	public static final byte[] MSG_INFO_SEPARATOR = Bytes.toBytes("-");
 
 	/**
-	 * This works fine, but it breaks Hue browser, so I decided to change to a
-	 * string-based approach.
+	 * This works fine, but the raw hex characters break Hue browser in cloudera 4 VM, 
+	 * so I decided to change to a string-based approach that would be easier to present.
 	 * 
 	 * @param msg
 	 * @param isFrom
 	 * @return
 	 */
-	public static byte[] makeToMessageColumnNameBytes(
-			UsersDAOUser.MessagesDAO msg, boolean isFrom) {
-
-		// reverse timestamp-username-from
-		byte[] timestamp = Bytes.toBytes(-1 * msg.date.getMillis());
-		byte[] username = Bytes.toBytes(isFrom ? msg.fromUser.username
-				: msg.toUser.username);
-		byte[] suffix = isFrom ? FROM_MSG_COL_SUFFIX : TO_MSG_COL_SUFFIX;
-		int suffixLen = isFrom ? FROM_MSG_COL_SUFFIX.length
-				: TO_MSG_COL_SUFFIX.length;
-
-		byte[] colKey = new byte[longLength + MSG_INFO_SEPARATOR.length
-				+ username.length + MSG_INFO_SEPARATOR.length + suffixLen];
-
-		int offset = 0;
-		// https://hbase.apache.org/apidocs/org/apache/hadoop/hbase/util/Bytes.html#putBytes(byte[],
-		// int, byte[], int, int)
-		offset = Bytes.putBytes(colKey, offset, timestamp, 0, timestamp.length);
-		offset = Bytes.putBytes(colKey, offset, MSG_INFO_SEPARATOR, 0,
-				MSG_INFO_SEPARATOR.length);
-		offset = Bytes.putBytes(colKey, offset, username, 0, username.length);
-		offset = Bytes.putBytes(colKey, offset, MSG_INFO_SEPARATOR, 0,
-				MSG_INFO_SEPARATOR.length);
-		Bytes.putBytes(colKey, offset, suffix, 0, suffixLen);
-		return colKey;
-	}
+//	public static byte[] makeToMessageColumnNameBytes(
+//			UsersDAOUser.MessagesDAO msg, boolean isFrom) {
+//
+//		// reverse timestamp-username-from
+//		byte[] timestamp = Bytes.toBytes(-1 * msg.date.getMillis());
+//		byte[] username = Bytes.toBytes(isFrom ? msg.otherUser.username
+//				: msg.toUser.username);
+//		byte[] suffix = isFrom ? FROM_MSG_COL_SUFFIX : TO_MSG_COL_SUFFIX;
+//		int suffixLen = isFrom ? FROM_MSG_COL_SUFFIX.length
+//				: TO_MSG_COL_SUFFIX.length;
+//
+//		byte[] colKey = new byte[longLength + MSG_INFO_SEPARATOR.length
+//				+ username.length + MSG_INFO_SEPARATOR.length + suffixLen];
+//
+//		int offset = 0;
+//		// https://hbase.apache.org/apidocs/org/apache/hadoop/hbase/util/Bytes.html#putBytes(byte[],
+//		// int, byte[], int, int)
+//		offset = Bytes.putBytes(colKey, offset, timestamp, 0, timestamp.length);
+//		offset = Bytes.putBytes(colKey, offset, MSG_INFO_SEPARATOR, 0,
+//				MSG_INFO_SEPARATOR.length);
+//		offset = Bytes.putBytes(colKey, offset, username, 0, username.length);
+//		offset = Bytes.putBytes(colKey, offset, MSG_INFO_SEPARATOR, 0,
+//				MSG_INFO_SEPARATOR.length);
+//		Bytes.putBytes(colKey, offset, suffix, 0, suffixLen);
+//		return colKey;
+//	}
 
 	/**
 	 * This is slower, but more understandable from the hbase shell
@@ -83,14 +83,14 @@ public class UsersDAO {
 	 * @return
 	 */
 	public static byte[] makeToMessageColumnNameString(
-			UsersDAOUser.MessagesDAO msg, boolean isForFromUser) {
+			UsersDAOUser.MessagesDAO msg) {
 
 		// [reverse timestamp]-[username]-[fr]om or [reverse
 		// timestamp]-[username]-[to]
 		String ts = String.format("%0" + longLength + "d",
 				-1 * msg.date.getMillis());
-		String un = isForFromUser ? msg.toUser.username : msg.fromUser.username;
-		String suffix = isForFromUser ? "to" : "fr";
+		String un = msg.getOtherUser().username;
+		String suffix = msg.isFrom ? "fr" : "to";
 
 		return Bytes.toBytes(ts + '-' + un + '-' + suffix);
 	}
@@ -177,14 +177,12 @@ public class UsersDAO {
 			String[] parts = columnName.split("-");
 			long instant = Long.parseLong(parts[1]);
 			DateTime msgTime = new DateTime(instant);
-			String targetUser = parts[2];
+			String otherUsername = parts[2];
 			String suffix = parts[3];
-			User user2 = new User(targetUser);
+			User otherUser = new User(otherUsername);
 			boolean isFrom = suffix.equals("fr");
-			User fromUser = isFrom ? user2 : (User) this;
-			User toUser = isFrom ? (User) this : user2;
 			String body = columnValue;
-			Message msg = new Message(fromUser, toUser, msgTime, body);
+			Message msg = new Message(otherUser, isFrom, msgTime, body);
 			addMessage(msg);
 		}
 
@@ -207,15 +205,16 @@ public class UsersDAO {
 
 		private class MessagesDAO extends User.Message {
 
-			public MessagesDAO(String body, String fromUsername,
-					String toUsername) {
-				super(body, fromUsername, toUsername);
+			public MessagesDAO(String username, boolean isFrom, String message) {
+				this(new UsersDAOUser(username), isFrom, message);
 			}
 
-			public MessagesDAO(UsersDAOUser fromUser, UsersDAOUser toUser,
+			public MessagesDAO(UsersDAOUser user2, boolean isFrom,
 					String message) {
-				super(fromUser, toUser, message);
+				super(user2, isFrom, message);
 			}
+			
+			
 
 		}
 	}
@@ -256,16 +255,19 @@ public class UsersDAO {
 	}
 
 	private Put mkPut(
-			com.myernore.e68.hbasemessenger.hbase.UsersDAO.UsersDAOUser.MessagesDAO msg,
-			boolean isForFromUser) {
-
-		String username = isForFromUser ? msg.fromUser.username
-				: msg.toUser.username;
+			com.myernore.e68.hbasemessenger.hbase.UsersDAO.UsersDAOUser.MessagesDAO msg) {
+		
+		
+		String username = msg.getOtherUser().username;
+		String fromToPhrase = String.format("from %s to %s",
+				msg.isFrom ? msg.getHostUser().username : msg.getOtherUser().username,
+				msg.isFrom ? msg.getOtherUser().username : msg.getHostUser().username);
+		
 		log.debug(String
-				.format("Creating Put for new message between %s and %s, storing in user %s",
-						msg.fromUser.username, msg.toUser.username, username));
+				.format("Creating Put for new message %s, storing in user %s",
+						fromToPhrase, username));
 		Put p = new Put(Bytes.toBytes(username));
-		p.add(MSGS_FAM, makeToMessageColumnNameString(msg, isForFromUser),
+		p.add(MSGS_FAM, makeToMessageColumnNameString(msg),
 				Bytes.toBytes(msg.body));
 
 		return p;
@@ -293,10 +295,15 @@ public class UsersDAO {
 
 	private void addMessage(UsersDAOUser fromUser, UsersDAOUser toUser,
 			String message) throws IOException {
-		UsersDAOUser.MessagesDAO msg = fromUser.new MessagesDAO(fromUser,
-				toUser, message);
-		Put putIntoFromUser = mkPut(msg, true);
-		Put putIntoToUser = mkPut(msg, false);
+		boolean isFrom;
+		UsersDAOUser.MessagesDAO msgToStoreInFromUser = fromUser.new MessagesDAO(
+				toUser, isFrom = true, message);
+		
+		UsersDAOUser.MessagesDAO msgToStoreInToUser = toUser.new MessagesDAO(
+				fromUser, isFrom = false, message);
+		
+		Put putIntoFromUser = mkPut(msgToStoreInFromUser);
+		Put putIntoToUser = mkPut(msgToStoreInToUser);
 
 		HTableInterface userTable = pool.getTable(TABLE_NAME);
 		userTable.put(putIntoFromUser);
