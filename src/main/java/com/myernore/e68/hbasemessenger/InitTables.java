@@ -67,8 +67,8 @@ public class InitTables {
       } else {
          System.out.println("Creating User table...");
          HTableDescriptor desc = new HTableDescriptor(UsersDAO.TABLE_NAME);
-         desc.addFamily(new HColumnDescriptor(UsersDAO.INFO_FAM));
-         desc.addFamily(new HColumnDescriptor(UsersDAO.MSGS_FAM));
+         desc.addFamily(new HColumnDescriptor(UsersDAO.COL_FAM_INFO));
+         desc.addFamily(new HColumnDescriptor(UsersDAO.COL_FAM_MSGS));
          admin.createTable(desc);
 
          System.out.println("User table created.");

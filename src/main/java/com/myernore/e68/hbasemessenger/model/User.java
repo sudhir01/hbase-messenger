@@ -13,6 +13,7 @@ public class User {
 	
 	public String username;
 	public String name;
+	public long numMessages;
 
 	public List<User.Message> messages;
 
@@ -31,8 +32,7 @@ public class User {
 
 	@Override
 	public String toString() {
-		return String.format("User: %s, %s with %d messages", username, name,
-				messages != null ? messages.size() : 0);
+		return String.format("Username: %s, Display name: %s has %s messages", username, name, numMessages);
 	}
 
 	@Override
