@@ -36,6 +36,7 @@ public class HBaseMessenger {
          MessagesAPI.checkMessages(args[1]);
       } else if (args[0].equals("init")) {
          InitTables.dropAndCreateTables();
+         LoadUsers.loadRomeoAndJulietUsers();
       } else if (args[0].equals("list")) {
          UsersAPI.printUsers();
       } else if (args[0].equals("msg") && args.length == 4) {

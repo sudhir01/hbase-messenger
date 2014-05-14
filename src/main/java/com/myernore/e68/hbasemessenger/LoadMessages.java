@@ -9,21 +9,12 @@ import org.apache.hadoop.hbase.client.HTablePool;
 import com.myernore.e68.hbasemessenger.hbase.UsersDAO;
 import com.myernore.e68.hbasemessenger.model.User;
 
-import utils.LoadUtils;
 
 public class LoadMessages {
 
 	public static final String usage = "loadmessages loadRomeoAndJuliet\n"
 			+ "  help                                       :  print this message and exit.\n"
          + "  loadRomeoAndJuliet                         :  loads Romeo, Juliet, Nurse Act 2 Scene 2 lines\n";
-
-	private static String randMessage(List<String> words) {
-		String message = "";
-		for (int i = 0; i < 20; i++) {
-			message += LoadUtils.randNth(words) + " ";
-		}
-		return message;
-	}
 
 	public static void main(String[] args) throws IOException {
 		if (args.length < 1 || "help".equals(args[0])) {
@@ -44,22 +35,6 @@ public class LoadMessages {
       pool.closeTablePool(UsersDAO.TABLE_NAME);
    }
 
-   private static void generateMessagesFrom(String fromUser, int numMessages) throws IOException {
-		HTablePool pool = new HTablePool();
-		UsersDAO usersDao = new UsersDAO(pool);
-		List<String> words = LoadUtils.readResource(LoadUtils.WORDS_PATH);
-		Iterator<User> users = usersDao.getUsers().iterator();
-		int numMessagesSent = 0;
-		while (numMessagesSent <  numMessages) {
-			if( ! users.hasNext() ) {
-				users = usersDao.getUsers().iterator();
-			}
-			User toUser= users.next();
-				usersDao.addMessage(fromUser, toUser.name, words.toString());
-		}
-		pool.closeTablePool(UsersDAO.TABLE_NAME);
-	}
-	
    static String[][] rAndJ = new String[][] {
          {"Romeo", "Juliet", "If I profane with my unworthiest hand\nThis holy shrine, the gentle fine is this:\nMy lips, two blushing pilgrims, ready stand\nTo smooth that rough touch with a tender kiss."},
          {"Juliet", "Romeo", "Good pilgrim, you do wrong your hand too much,\nWhich mannerly devotion shows in this;\nFor saints have hands that pilgrims' hands do touch,\nAnd palm to palm is holy palmers' kiss."},

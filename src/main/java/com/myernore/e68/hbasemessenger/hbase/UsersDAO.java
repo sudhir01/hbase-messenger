@@ -17,7 +17,6 @@ import org.joda.time.DateTime;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import utils.Md5Utils;
 
 import com.myernore.e68.hbasemessenger.model.User;
 import com.myernore.e68.hbasemessenger.model.User.Message;
