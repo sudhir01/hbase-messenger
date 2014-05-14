@@ -42,7 +42,7 @@ public class UsersDAO {
    public static final byte[] MSG_INFO_SEPARATOR = Bytes.toBytes("-");
 
    /**
-    * This works fine, but the raw hex characters break Hue browser in cloudera
+    * This worked fine, but the raw hex characters break Hue browser in cloudera
     * 4 VM, so I decided to change to a string-based approach that would be
     * easier to present.
     * 

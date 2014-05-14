@@ -37,7 +37,7 @@ public class MessagesAPI {
 
 	}
 
-	private static void checkMessages(String username) throws IOException {
+	static void checkMessages(String username) throws IOException {
 		HTablePool pool = new HTablePool();
 		UsersDAO usersDao = new UsersDAO(pool);
 		User user1 = usersDao.getUser(username);
