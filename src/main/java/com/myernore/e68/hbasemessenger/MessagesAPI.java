@@ -14,10 +14,10 @@ import com.myernore.e68.hbasemessenger.model.User;
 import com.myernore.e68.hbasemessenger.model.User.Message;
 
 public class MessagesAPI {
-
+   
 	private static String USAGE = "Usage - MessagesAPI\n"
 			+ "  MessagesAPI help                                       :  print this help message\n"
-			+ "  MessagesAPI list                                       :  list usernames to message\n"
+         + "  MessagesAPI list                                       :  list usernames to message\n"
 			+ "  MessagesAPI check <username1>                          :  check messages for \n"
 			+ "  MessagesAPI msg <username1> <username2> \"<message>\"  :  sends \"message\" from username1 to username2";
 

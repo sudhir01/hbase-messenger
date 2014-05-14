@@ -12,9 +12,9 @@ import utils.LoadUtils;
 public class LoadUsers {
 
   public static final String usage =
-    "loadusers count\n" +
-    "  help - print this message and exit.\n" +
-    "  count - add count random HBaseMessenger users.\n";
+    "loadusers \n" +
+    "  help                :  print this message and exit.\n" +
+    "  loadRomeoAndJuliet  :  load Romeo, Juliet, and Nurse users.\n";
 
   private static String randName(List<String> names) {
     String name = LoadUtils.randNth(names).trim() + " ";
@@ -34,21 +34,18 @@ public class LoadUsers {
       System.out.println(usage);
       System.exit(0);
     }
-
-    HTablePool pool = new HTablePool();
-    UsersDAO usersConnection = new UsersDAO(pool);
-
-    int count = Integer.parseInt(args[0]);
-    List<String> names = LoadUtils.readResource(LoadUtils.NAMES_PATH);
-
-    for (int i = 0; i < count; i++) {
-      String name = randName(names);
-      String username = randUser(name);
-      usersConnection.addUser(username, name);
+    if( args[0].equals("loadRomeoAndJuliet")) {
+       loadRomeoAndJulietUsers();
     }
-    
-    pool.closeTablePool(UsersDAO.TABLE_NAME);
-    
-    System.out.println(String.format("Added %d users.", count));
   }
+
+   private static void loadRomeoAndJulietUsers() throws IOException {
+   HTablePool pool = new HTablePool();
+   UsersDAO usersConnection = new UsersDAO(pool);
+     usersConnection.addUser("Romeo", "Romeo Montague");
+     usersConnection.addUser("Juliet", "Juliet Capulet");
+     usersConnection.addUser("Nurse", "Nurse Capulet");
+   pool.closeTablePool(UsersDAO.TABLE_NAME);
+   System.out.println("Added 3 users.");
+}
 }

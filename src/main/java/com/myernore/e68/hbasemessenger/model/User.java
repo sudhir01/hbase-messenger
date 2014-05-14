@@ -77,11 +77,11 @@ public class User {
 		
 		@Override
 		public String toString() {
-			String fromSpacing = "           ";
-			String fromOrTo = isFrom ? fromSpacing + "From " : "To ";
+			String toSpacing = "           ";
+			String fromOrTo = isFrom ? "From " : toSpacing + "To ";
 			return "-----------------------\n" 
 			+ fromOrTo + getOtherUser().username 
-			+ " at " + dtf.print(date) + "\n" + (isFrom ? fromSpacing : "") + body;
+			+ " at " + dtf.print(date) + "\n" + (isFrom ? "" : toSpacing) + body;
 		}
 
 	}
