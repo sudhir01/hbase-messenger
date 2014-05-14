@@ -22,11 +22,11 @@ public class LoadMessages {
 			System.exit(0);
 		}
 		if( args[0].equals("loadRomeoAndJuliet") ) {
-		   loadRomeoAndJuliet();
+		   loadRomeoAndJulietMessages();
 		}
 	}
 
-	private static void loadRomeoAndJuliet() throws IOException {
+	public static void loadRomeoAndJulietMessages() throws IOException {
 	   HTablePool pool = new HTablePool();
       UsersDAO usersDao = new UsersDAO(pool);
       for(String[] line : rAndJ ) {

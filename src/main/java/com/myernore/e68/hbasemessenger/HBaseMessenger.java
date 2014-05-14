@@ -29,6 +29,8 @@ public class HBaseMessenger {
       if (args.length < 1 || args[0].equals("help")) {
          printUsage();
       }
+      // get rid of zookeeper info messages
+      // http://stackoverflow.com/a/16749847/78202
       Logger.getRootLogger().setLevel(Level.ERROR);
       if (args[0].equals("add") && args.length == 3) {
          UsersAPI.addUser(args[1], args[2]);
@@ -37,6 +39,7 @@ public class HBaseMessenger {
       } else if (args[0].equals("init")) {
          InitTables.dropAndCreateTables();
          LoadUsers.loadRomeoAndJulietUsers();
+         LoadMessages.loadRomeoAndJulietMessages();
       } else if (args[0].equals("list")) {
          UsersAPI.printUsers();
       } else if (args[0].equals("msg") && args.length == 4) {
