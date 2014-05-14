@@ -17,13 +17,13 @@ public class HBaseMessenger {
          + "  HBaseMessenger msg Romeo myusername1 \"Welcome to HBase Messenger\"\n"
          + "  HBaseMessenger check myusername1\n"
          + "All Commands Available:\n"
-         + "  HBaseMessenger add <username1> \"User DisplayName\"       :  creates user with username1 and display name \"User DisplayName\""
-         + "  HBaseMessenger check <Romeo|Juliet|Nurse>                 :  check messages for either Romeo, Juliet, or the Nurse\n"
+         + "  HBaseMessenger add <username1> \"User DisplayName\"       :  creates username1 with name \"User DisplayName\"\n"
+         + "  HBaseMessenger check <Romeo|Juliet|Nurse>                 :  check messages for Romeo, Juliet, or Nurse\n"
          + "  HBaseMessenger check <username1>                          :  check messages for \n"
          + "  HBaseMessenger help                                       :  print this help message\n"
          + "  HBaseMessenger init                                       :  wipes and initializes test database\n"
          + "  HBaseMessenger list                                       :  lists users in system\n"
-         + "  HBaseMessenger msg <username1> <username2> \"<message>\"  :  sends \"message\" from username1 to username2";
+         + "  HBaseMessenger msg <username1> <username2> \"<message>\"  :  sends \"message\" from username1 to username2\n";
 
    public static void main(String[] args) throws IOException {
       if (args.length < 1 || args[0].equals("help")) {
