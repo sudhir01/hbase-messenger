@@ -9,7 +9,7 @@ import org.joda.time.format.DateTimeFormatter;
 
 public class User {
 
-	private DateTimeFormatter dtf = DateTimeFormat.forPattern("MM/dd/yyyy HH:mm:ss a");
+	private static final DateTimeFormatter dtf = DateTimeFormat.forPattern("MM/dd/yyyy HH:mm:ss a");
 	
 	public String username;
 	public String name;

@@ -2,6 +2,7 @@ package com.myernore.e68.hbasemessenger.hbase;
 
 import java.io.IOException;
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.List;
 import java.util.NavigableMap;
 
@@ -26,6 +27,13 @@ public class UsersDAO {
 
       private class MessagesDAO extends User.Message {
 
+         public MessagesDAO(byte[] dt, String username2, boolean isFrom,
+               byte[] body) {
+            super(new User(username2), isFrom,
+            // multiply by -1 since it was in reverse chron
+                  new DateTime(-1 * Bytes.toLong(dt)), Bytes.toString(body));
+         }
+
          public MessagesDAO(UsersDAOUser user2, boolean isFrom, String message) {
             super(user2, isFrom, message);
          }
@@ -47,9 +55,9 @@ public class UsersDAO {
          this.r = r;
          this.name = Bytes.toString(r.getValue(COL_FAM_INFO,
                COL_FAM_INFO_COL_NAME));
-         byte[] numMessagesInBytes = r.getValue(COL_FAM_INFO, COL_FAM_INFO_COL_NUM_MSGS) == null
-               ? Bytes.toBytes(0L)
-               : r.getValue(COL_FAM_INFO, COL_FAM_INFO_COL_NUM_MSGS);
+         final byte[] numMessagesInBytes = r.getValue(COL_FAM_INFO,
+               COL_FAM_INFO_COL_NUM_MSGS) == null ? Bytes.toBytes(0L) : r
+               .getValue(COL_FAM_INFO, COL_FAM_INFO_COL_NUM_MSGS);
          this.numMessages = Bytes.toLong(numMessagesInBytes);
          unmarshalMessages(r);
       }
@@ -64,28 +72,29 @@ public class UsersDAO {
          this.name = u.name == null ? "" : u.name;
       }
 
-      private void loadMessage(String columnName, String columnValue) {
-         final String[] parts = columnName.split("-");
-         final long instant = Long.parseLong(parts[1]);
-         final DateTime msgTime = new DateTime(instant);
-         final String otherUsername = parts[2];
-         final String suffix = parts[3];
-         final User otherUser = new User(otherUsername);
-         final boolean isFrom = suffix.equals("fr");
-         final String body = columnValue;
-         final Message msg = new Message(otherUser, isFrom, msgTime, body);
-         addMessage(msg);
-      }
-
       private void unmarshalMessages(Result r2) {
          final NavigableMap<byte[], byte[]> familyMap = this.r
                .getFamilyMap(COL_FAM_MSGS);
 
-         for (final byte[] column : familyMap.keySet()) {
-            final String columnName = Bytes.toString(column);
-            final String columnValue = Bytes.toString(this.r.getValue(
-                  COL_FAM_MSGS, column));
-            loadMessage(columnName, columnValue);
+         for (final byte[] columnKey : familyMap.keySet()) {
+
+            final byte[] dt = Arrays.copyOfRange(columnKey, 0, LONG_LENGTH);
+            final int usernameStartIndex = LONG_LENGTH
+                  + COL_FAM_MSGS_SEPARATOR.length;
+            final byte[] usernameAndFrom = Arrays.copyOfRange(columnKey,
+                  usernameStartIndex, columnKey.length);
+            final String usernameAndFromString = Bytes
+                  .toString(usernameAndFrom);
+            final int fromStringIndex = usernameAndFromString.length()
+                  - (COL_FAM_MSGS_SUFFIX_FROM.length + COL_FAM_MSGS_SEPARATOR.length)
+                  + 1;
+            final String username = usernameAndFromString.substring(0,
+                  fromStringIndex - 1);
+            final boolean isFrom = usernameAndFromString.endsWith(Bytes
+                  .toString(COL_FAM_MSGS_SUFFIX_FROM));
+            final byte[] body = r2.getValue(COL_FAM_MSGS, columnKey);
+            final MessagesDAO msg = new MessagesDAO(dt, username, isFrom, body);
+            addMessage(msg);
          }
       }
    }
@@ -104,6 +113,41 @@ public class UsersDAO {
    public static final byte[] TABLE_NAME = Bytes.toBytes("hbm-users");
    private static final Logger LOG = LoggerFactory.getLogger(UsersDAO.class);
    private static final int LONG_LENGTH = 8; // long length for timestamps
+
+   /**
+    * This worked fine, but the raw hex characters break Hue browser in cloudera
+    * 4 VM, so I decided to change to a string-based approach that would be
+    * easier to present.
+    * 
+    * @param msg
+    * @param isFrom
+    * @return
+    */
+   public static byte[] makeToMessageColumnNameBytes(
+         UsersDAOUser.MessagesDAO msg) {
+
+      // reverse timestamp-username-from
+      final byte[] timestamp = Bytes.toBytes(-1 * msg.date.getMillis());
+      final byte[] username = Bytes.toBytes(msg.getOtherUser().username);
+      final byte[] suffix = msg.isFrom ? COL_FAM_MSGS_SUFFIX_TO
+            : COL_FAM_MSGS_SUFFIX_FROM;
+
+      final byte[] colKey = new byte[LONG_LENGTH
+            + COL_FAM_MSGS_SEPARATOR.length + username.length
+            + COL_FAM_MSGS_SEPARATOR.length + suffix.length];
+
+      int offset = 0;
+      // https://hbase.apache.org/apidocs/org/apache/hadoop/hbase/util/Bytes.html#putBytes(byte[],
+      // int, byte[], int, int)
+      offset = Bytes.putBytes(colKey, offset, timestamp, 0, timestamp.length);
+      offset = Bytes.putBytes(colKey, offset, COL_FAM_MSGS_SEPARATOR, 0,
+            COL_FAM_MSGS_SEPARATOR.length);
+      offset = Bytes.putBytes(colKey, offset, username, 0, username.length);
+      offset = Bytes.putBytes(colKey, offset, COL_FAM_MSGS_SEPARATOR, 0,
+            COL_FAM_MSGS_SEPARATOR.length);
+      Bytes.putBytes(colKey, offset, suffix, 0, suffix.length);
+      return colKey;
+   }
 
    /**
     * Using string to parse the column qualifiers is slower than using byte
@@ -147,8 +191,8 @@ public class UsersDAO {
    /**
     * Creates the PUT API call for HBase for modifying the users associated with
     * a message so that both users store the sent message. Calls
-    * makeToMessageColumnNameString(msg) to generate the column name to store
-    * the body in, and stores that column in the COL_FAM_MSGS column family.
+    * makeToMessageColumnNameBytes(msg) to generate the column name to store the
+    * body in, and stores that column in the COL_FAM_MSGS column family.
     * Increments the number of msgs for that user.
     * 
     * @param msg
@@ -159,7 +203,8 @@ public class UsersDAO {
 
       final String username = msg.getHostUser().username;
       final Put p = new Put(Bytes.toBytes(username));
-      p.add(COL_FAM_MSGS, makeToMessageColumnNameString(msg),
+      // byte[] column family, byte[] column qualifier, byte[] value
+      p.add(COL_FAM_MSGS, makeToMessageColumnNameBytes(msg),
             Bytes.toBytes(msg.body));
 
       return p;
